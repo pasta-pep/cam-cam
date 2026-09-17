@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cam cam</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Seaweed+Script&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Landing page -->
+    <div id="landing" class="landing">
+        <h1 class="landing-title">cam cam</h1>
+    </div>
+
+    <video id="camera" autoplay playsinline></video>
+
+    <!-- Camera mode: shutter -->
+    <button id="shutter" class="shutter"></button>
+    <button id="record" class="icon-btn record">●</button>
+    <button id="flip" class="icon-btn flip">↻</button>
+
+    <div id="focusRing" class="focus-ring hidden"></div>
+
+    <button id="flash" class="icon-btn flash" aria-label="flash">
+        <svg id="flashIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            <line id="flashSlash" x1="3" y1="3" x2="21" y2="21" />
+        </svg>
+    </button>
+
+    <!-- Effect switcher dropdown (camera mode only) -->
+    <div id="effectRail" class="effect-rail">
+        <button id="effectToggle" class="effect-toggle">Fisheye ▾</button>
+        <div id="effectMenu" class="effect-menu hidden">
+            <button class="effect-btn active" data-effect="fisheye">Fisheye</button>
+            <button class="effect-btn" data-effect="fisheyebw">Fisheye B&amp;W</button>
+            <button class="effect-btn" data-effect="swirl">Swirl</button>
+            <button class="effect-btn" data-effect="bw">B&amp;W</button>
+            <button class="effect-btn" data-effect="punch">Punch</button>
+            <button class="effect-btn" data-effect="film">Old Film</button>
+            <button class="effect-btn" data-effect="comic">Comic</button>
+            <button class="effect-btn" data-effect="motion">Motion</button>
+            <button class="effect-btn" data-effect="none">None</button>
+        </div>
+    </div>
+
+    <!-- Review mode: X top-left, save + share bottom-left -->
+    <div id="review" class="hidden">
+        <button id="discard" class="icon-btn discard">✕</button>
+        <div class="review-actions">
+            <button id="save" class="icon-btn">⤓</button>
+            <button id="share" class="icon-btn">↑</button>
+        </div>
+    </div>
+
+    <!-- Toast message -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- glfx library, then our script -->
+    <script src="glfx.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
