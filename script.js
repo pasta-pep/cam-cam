@@ -59,7 +59,9 @@ function applyEffect() {
     } else if (currentEffect === "punch") {
         chain = chain.vibrance(1.0).brightnessContrast(0.05, 0.8);
     } else if (currentEffect === "film") {
-        chain = chain.sepia(0.7).vignette(0.4, 0.6).noise(0.15).vibrance(0.2);
+        chain = chain.sepia(0.7).vignette(0.4, 0.6).noise(0.15);
+    } else if (currentEffect === "halftone") {
+        chain = chain.colorHalftone(cx, cy, 0.75, 12);
     } else if (currentEffect === "comic") {
         chain = chain.dotScreen(cx, cy, 0, 3).brightnessContrast(0.1, 0.6);
     } else if (currentEffect === "motion") {
@@ -70,60 +72,24 @@ function applyEffect() {
 }
 
 function draw() {
-    if (!texture) {
-        texture = glfxCanvas.texture(video);
-    }
-    texture.loadContentsOf(video);
-
-    const cx = video.videoWidth / 2;
-    const cy = video.videoHeight / 2;
-    const radius = Math.min(video.videoWidth, video.videoHeight) / 1.5;
-
-    let chain = glfxCanvas.draw(texture);
-
-    applyEffect();
-
-    // if (currentEffect === "fisheye") {
-    //     chain = chain.bulgePinch(cx, cy, radius, 0.5).vignette(0.5, 0.5);
-    // } else if (currentEffect === "fisheyebw") {
-    //     chain = chain.bulgePinch(cx, cy, radius, 0.5).hueSaturation(0, -1).vignette(0.5, 0.5);
-    // } else if (currentEffect === "swirl") {
-    //     chain = chain.swirl(cx, cy, radius, 3).vignette(0.5, 0.5);
-    // } else if (currentEffect === "bw") {
-    //     chain = chain.hueSaturation(0, -1);
-    // }
-    // "none" = raw feed
-
-    chain.update();
-
-    if (!isFrozen) requestAnimationFrame(draw);
-}
-
-function draw() {
     if (!texture) texture = glfxCanvas.texture(video);
     texture.loadContentsOf(video);
-    applyEffect();                          // ← one line
+    applyEffect();
     if (!isFrozen) requestAnimationFrame(draw);
 }
 
 const effectToggle = document.getElementById("effectToggle");
 const effectMenu = document.getElementById("effectMenu");
 
-// Tap the toggle to reveal/hide the menu
 effectToggle.addEventListener("click", () => {
     effectMenu.classList.toggle("hidden");
 });
 
-// Pick an effect
 document.querySelectorAll(".effect-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         currentEffect = btn.dataset.effect;
-
-        // Update active highlight
         document.querySelectorAll(".effect-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-
-        // Update the toggle label to show the choice, and collapse the menu
         effectToggle.textContent = btn.textContent + " ▾";
         effectMenu.classList.add("hidden");
     });
@@ -135,58 +101,40 @@ document.getElementById("landing").addEventListener("click", () => {
     startCamera();
 });
 
-// --- Shutter + review flow ---
-
+// --- Buttons ---
 document.getElementById("shutter").addEventListener("click", takePhoto);
 document.getElementById("discard").addEventListener("click", discard);
 document.getElementById("save").addEventListener("click", savePhoto);
 document.getElementById("share").addEventListener("click", sharePhoto);
 document.getElementById("flip").addEventListener("click", flipCamera);
-
 document.getElementById("flash").addEventListener("click", toggleFlash);
-
 document.getElementById("record").addEventListener("click", toggleRecord);
 
 async function toggleFlash() {
     if (!currentStream) return;
     const track = currentStream.getVideoTracks()[0];
     const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-
-    // Only works if the device exposes a torch
     if (!capabilities.torch) {
         showToast("Flash not available on this camera");
         return;
     }
-
     flashOn = !flashOn;
     try {
-        await track.applyConstraints({
-            advanced: [{ torch: flashOn }]
-        });
-        // Update the button look
-        // Show slash when off, hide when on
+        await track.applyConstraints({ advanced: [{ torch: flashOn }] });
         document.getElementById("flashSlash").style.display = flashOn ? "none" : "block";
     } catch (err) {
         showToast("Flash failed");
     }
 }
 
-// Tap-to-focus: show ring where tapped, attempt to refocus
+// Tap-to-focus
 glfxCanvas.addEventListener("click", (e) => {
     const ring = document.getElementById("focusRing");
-
-    // Position the ring where the finger/cursor tapped
     ring.style.left = e.clientX + "px";
     ring.style.top = e.clientY + "px";
-
-    // Animate it in, then out
     ring.classList.remove("hidden");
     ring.classList.add("show");
-    setTimeout(() => {
-        ring.classList.remove("show");
-    }, 400);
-
-    // Best-effort actual refocus (works on some devices, not iPhone Safari)
+    setTimeout(() => ring.classList.remove("show"), 400);
     tryRefocus();
 });
 
@@ -194,44 +142,17 @@ async function tryRefocus() {
     if (!currentStream) return;
     const track = currentStream.getVideoTracks()[0];
     const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-
     if (capabilities.focusMode && capabilities.focusMode.includes("single-shot")) {
         try {
-            await track.applyConstraints({
-                advanced: [{ focusMode: "single-shot" }]
-            });
-        } catch (err) {
-            // Device won't allow it — the ring still shows, just no refocus
-        }
+            await track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] });
+        } catch (err) { /* device won't allow */ }
     }
 }
 
 function takePhoto() {
     isFrozen = true;
-
-    // Re-render so the buffer is full, then capture
     texture.loadContentsOf(video);
-
-    const cx = video.videoWidth / 2;
-    const cy = video.videoHeight / 2;
-    const radius = Math.min(video.videoWidth, video.videoHeight) / 1.5;
-
-    let chain = glfxCanvas.draw(texture);
-
     applyEffect();
-
-    // if (currentEffect === "fisheye") {
-    //     chain = chain.bulgePinch(cx, cy, radius, 0.5).vignette(0.5, 0.5);
-    // } else if (currentEffect === "fisheyebw") {
-    //     chain = chain.bulgePinch(cx, cy, radius, 0.5).hueSaturation(0, -1).vignette(0.5, 0.5);
-    // } else if (currentEffect === "swirl") {
-    //     chain = chain.swirl(cx, cy, radius, 3).vignette(0.5, 0.5);
-    // } else if (currentEffect === "bw") {
-    //     chain = chain.hueSaturation(0, -1);
-    // }
-
-    chain.update();
-
     glfxCanvas.toBlob((blob) => { capturedBlob = blob; }, "image/png");
 
     document.getElementById("shutter").classList.add("hidden");
@@ -239,6 +160,7 @@ function takePhoto() {
     document.getElementById("review").classList.remove("hidden");
     document.getElementById("effectRail").classList.add("hidden");
     document.getElementById("flash").classList.add("hidden");
+    document.getElementById("record").classList.add("hidden");
 }
 
 function discard() {
@@ -249,6 +171,7 @@ function discard() {
     document.getElementById("review").classList.add("hidden");
     document.getElementById("effectRail").classList.remove("hidden");
     document.getElementById("flash").classList.remove("hidden");
+    document.getElementById("record").classList.remove("hidden");
     draw();
 }
 
@@ -267,28 +190,21 @@ function toggleRecord() {
 
 function startRecording() {
     const stream = glfxCanvas.captureStream(30);
-
     let mimeType = "video/mp4";
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "video/webm";
-    }
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
     if (!MediaRecorder.isTypeSupported(mimeType)) {
         showToast("Recording not supported on this device");
         return;
     }
-
     recordedChunks = [];
     mediaRecorder = new MediaRecorder(stream, { mimeType });
-
     mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordedChunks.push(e.data);
     };
-
     mediaRecorder.onstop = () => {
         const blob = new Blob(recordedChunks, { type: mimeType });
         shareVideo(blob, mimeType);
     };
-
     mediaRecorder.start();
     isRecording = true;
     document.getElementById("record").classList.add("recording");
@@ -297,7 +213,6 @@ function startRecording() {
 function stopRecording() {
     isRecording = false;
     document.getElementById("record").classList.remove("recording");
-
     setTimeout(() => {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
@@ -308,7 +223,6 @@ function stopRecording() {
 async function shareVideo(blob, mimeType) {
     const ext = mimeType.includes("mp4") ? "mp4" : "webm";
     const file = new File([blob], "wawa-cam." + ext, { type: mimeType });
-
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({ files: [file] });
@@ -326,7 +240,6 @@ async function shareVideo(blob, mimeType) {
 async function savePhoto() {
     if (!capturedBlob) return;
     const file = new File([capturedBlob], "fun-camera.png", { type: "image/png" });
-
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
             await navigator.share({ files: [file] });

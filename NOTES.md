@@ -27,3 +27,10 @@
 - cloudflared lives in ~/Documents/
 - If localhost shows the WRONG files (like Python files), the wrong
   FOLDER is open in VSCode — File → Open Folder → my camera app
+
+
+  ## To push an update:
+git add .
+git commit -m "what I changed"
+git push
+(Vercel auto-deploys in ~30 sec)
