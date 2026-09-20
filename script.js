@@ -59,7 +59,11 @@ function applyEffect() {
     } else if (currentEffect === "punch") {
         chain = chain.vibrance(1.0).brightnessContrast(0.05, 0.8);
     } else if (currentEffect === "film") {
-        chain = chain.sepia(0.7).vignette(0.4, 0.6).noise(0.10);
+        chain = chain
+            .hueSaturation(0.02, 0.02)
+            .brightnessContrast(-0.03, 0.15)
+            .vignette(0.35, 0.5)
+            .noise(0.08);
     } else if (currentEffect === "halftone") {
         chain = chain.colorHalftone(cx, cy, 0.75, 8).brightnessContrast(0.05, 0.8);
     } else if (currentEffect === "comic") {
