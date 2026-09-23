@@ -6,6 +6,7 @@ let flashOn = false;
 let mediaRecorder = null;
 let recordedChunks = [];
 let isRecording = false;
+let currentZoom = 1;
 
 let glfxCanvas;
 try {
@@ -113,6 +114,52 @@ document.getElementById("share").addEventListener("click", sharePhoto);
 document.getElementById("flip").addEventListener("click", flipCamera);
 document.getElementById("flash").addEventListener("click", toggleFlash);
 document.getElementById("record").addEventListener("click", toggleRecord);
+
+// Pinch-to-zoom (hardware zoom, falls back silently if unsupported)
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+
+glfxCanvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+        pinchStartDist = getPinchDistance(e.touches);
+        pinchStartZoom = currentZoom;
+    }
+}, { passive: false });
+
+glfxCanvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2) {
+        e.preventDefault();  // stop the page from zooming
+        const dist = getPinchDistance(e.touches);
+        const scale = dist / pinchStartDist;
+        setZoom(pinchStartZoom * scale);
+    }
+}, { passive: false });
+
+function getPinchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+async function setZoom(zoom) {
+    if (!currentStream) return;
+    const track = currentStream.getVideoTracks()[0];
+    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+
+    // Only if the device exposes zoom
+    if (!capabilities.zoom) return;
+
+    // Clamp to what the device allows
+    const min = capabilities.zoom.min;
+    const max = capabilities.zoom.max;
+    currentZoom = Math.max(min, Math.min(zoom, max));
+
+    try {
+        await track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+    } catch (err) {
+        // Device won't allow it — silently ignore
+    }
+}
 
 async function toggleFlash() {
     if (!currentStream) return;
