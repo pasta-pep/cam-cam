@@ -239,16 +239,31 @@ function toggleRecord() {
     }
 }
 
-function startRecording() {
-    const stream = glfxCanvas.captureStream(30);
+async function startRecording() {
+    // Get the canvas video stream (your effect)
+    const canvasStream = glfxCanvas.captureStream(30);
+
+    // Try to get microphone audio and add it in
+    let combinedStream = canvasStream;
+    try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        combinedStream = new MediaStream([
+            ...canvasStream.getVideoTracks(),
+            ...audioStream.getAudioTracks()
+        ]);
+    } catch (err) {
+        showToast("Recording without audio");
+    }
+
     let mimeType = "video/mp4";
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
     if (!MediaRecorder.isTypeSupported(mimeType)) {
         showToast("Recording not supported on this device");
         return;
     }
+
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
     mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordedChunks.push(e.data);
     };
