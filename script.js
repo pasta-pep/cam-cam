@@ -7,6 +7,7 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let isRecording = false;
 let currentZoom = 1;
+let audioStream = null;
 
 let glfxCanvas;
 try {
@@ -36,9 +37,25 @@ async function startCamera() {
             texture = null;
             isFrozen = false;
             draw();
+            warmUpMic();   // start the mic early so it's ready when recording
         };
     } catch (err) {
         alert("Camera error: " + err.message);
+    }
+}
+
+async function warmUpMic() {
+    if (audioStream) return;  // already have it
+    try {
+        audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                autoGainControl: false,
+                noiseSuppression: false,
+                echoCancellation: false
+            }
+        });
+    } catch (err) {
+        // No mic permission — recording will be video-only
     }
 }
 
@@ -244,20 +261,14 @@ async function startRecording() {
     const canvasStream = glfxCanvas.captureStream(30);
 
     // Try to get microphone audio and add it in
+    // Use the already-warmed mic (from warmUpMic)
     let combinedStream = canvasStream;
-    try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                autoGainControl: false,
-                noiseSuppression: false,
-                echoCancellation: false
-            }
-        });
+    if (audioStream) {
         combinedStream = new MediaStream([
             ...canvasStream.getVideoTracks(),
             ...audioStream.getAudioTracks()
         ]);
-    } catch (err) {
+    } else {
         showToast("Recording without audio");
     }
 
