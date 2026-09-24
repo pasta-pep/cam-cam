@@ -7,7 +7,6 @@ let mediaRecorder = null;
 let recordedChunks = [];
 let isRecording = false;
 let currentZoom = 1;
-let audioStream = null;
 
 let glfxCanvas;
 try {
@@ -28,18 +27,10 @@ async function startCamera() {
             currentStream.getTracks().forEach(track => track.stop());
         }
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: facingMode },
-            audio: {
-                autoGainControl: false,
-                noiseSuppression: false,
-                echoCancellation: false
-            }
+            video: { facingMode: facingMode }
         });
         currentStream = stream;
-        // Save the audio track for recording
-        audioStream = new MediaStream(stream.getAudioTracks());
-        video.srcObject = stream;
-        video.muted = true;   // don't play mic back through speakers (avoids echo)
+        video.srcObject = stream;   // don't play mic back through speakers (avoids echo)
         video.onloadedmetadata = () => {
             video.play();
             texture = null;
@@ -48,21 +39,6 @@ async function startCamera() {
         };
     } catch (err) {
         alert("Camera error: " + err.message);
-    }
-}
-
-async function warmUpMic() {
-    if (audioStream) return;  // already have it
-    try {
-        audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                autoGainControl: false,
-                noiseSuppression: false,
-                echoCancellation: false
-            }
-        });
-    } catch (err) {
-        // No mic permission — recording will be video-only
     }
 }
 
@@ -266,17 +242,6 @@ function toggleRecord() {
 async function startRecording() {
     const canvasStream = glfxCanvas.captureStream(30);
 
-    // Use the audio track we already got when the camera started
-    let combinedStream = canvasStream;
-    if (audioStream && audioStream.getAudioTracks().length > 0) {
-        combinedStream = new MediaStream([
-            ...canvasStream.getVideoTracks(),
-            ...audioStream.getAudioTracks()
-        ]);
-    } else {
-        showToast("Recording without audio");
-    }
-
     let mimeType = "video/mp4";
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
     if (!MediaRecorder.isTypeSupported(mimeType)) {
@@ -285,7 +250,7 @@ async function startRecording() {
     }
 
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
+    mediaRecorder = new MediaRecorder(canvasStream, { mimeType });
     mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordedChunks.push(e.data);
     };
