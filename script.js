@@ -28,16 +28,23 @@ async function startCamera() {
             currentStream.getTracks().forEach(track => track.stop());
         }
         const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: facingMode }
+            video: { facingMode: facingMode },
+            audio: {
+                autoGainControl: false,
+                noiseSuppression: false,
+                echoCancellation: false
+            }
         });
         currentStream = stream;
+        // Save the audio track for recording
+        audioStream = new MediaStream(stream.getAudioTracks());
         video.srcObject = stream;
+        video.muted = true;   // don't play mic back through speakers (avoids echo)
         video.onloadedmetadata = () => {
             video.play();
             texture = null;
             isFrozen = false;
             draw();
-            warmUpMic();   // start the mic early so it's ready when recording
         };
     } catch (err) {
         alert("Camera error: " + err.message);
@@ -257,13 +264,11 @@ function toggleRecord() {
 }
 
 async function startRecording() {
-    // Get the canvas video stream (your effect)
     const canvasStream = glfxCanvas.captureStream(30);
 
-    // Try to get microphone audio and add it in
-    // Use the already-warmed mic (from warmUpMic)
+    // Use the audio track we already got when the camera started
     let combinedStream = canvasStream;
-    if (audioStream) {
+    if (audioStream && audioStream.getAudioTracks().length > 0) {
         combinedStream = new MediaStream([
             ...canvasStream.getVideoTracks(),
             ...audioStream.getAudioTracks()
