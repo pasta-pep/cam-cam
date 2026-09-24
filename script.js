@@ -246,7 +246,13 @@ async function startRecording() {
     // Try to get microphone audio and add it in
     let combinedStream = canvasStream;
     try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                autoGainControl: false,
+                noiseSuppression: false,
+                echoCancellation: false
+            }
+        });
         combinedStream = new MediaStream([
             ...canvasStream.getVideoTracks(),
             ...audioStream.getAudioTracks()
