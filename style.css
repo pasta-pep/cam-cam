@@ -26,12 +26,18 @@ canvas {
     cursor: pointer;
 }
 
-.landing-title {
+.landing-image {
+    max-width: 70%;
+    max-height: 70%;
+    object-fit: contain;
+}
+
+/* .landing-title {
     color: white;
     font-family: "Seaweed Script", cursive;
     font-size: 100px;
     font-weight: 400;
-}
+} */
 
 /* raw video is hidden — we only show the effect canvas */
 video {
