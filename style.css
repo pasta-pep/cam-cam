@@ -32,6 +32,19 @@ canvas {
     object-fit: contain;
 }
 
+.powered-by {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
 /* .landing-title {
     color: white;
     font-family: "Seaweed Script", cursive;
